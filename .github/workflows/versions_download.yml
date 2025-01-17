@@ -23,4 +23,4 @@ jobs:
          git config --local user.email "sean19821016@gmail.com"
          git add versions.txt
          git commit -m "自动更新 versions.txt"
-         git push  
+         git push
