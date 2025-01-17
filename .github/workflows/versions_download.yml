@@ -16,3 +16,11 @@ jobs:
       - name: 下载文件  
         run: |  
           curl -o versions.txt https://raw.githubusercontent.com/blawar/titledb/master/versions.txt
+
+     - name: 推送到代码仓库
+       run: |
+         git config --local user.name "Sean"
+         git config --local user.email "sean19821016@gmail.com"
+         git add versions.txt
+         git commit -m "自动更新 versions.txt"
+         git push  
