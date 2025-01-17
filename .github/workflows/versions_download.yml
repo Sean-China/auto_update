@@ -1,0 +1,13 @@
+name: 定时下载dbi_versions文件  
+on:  
+  schedule:  
+    - cron: '0 * * * *'
+jobs:  
+  download:  
+    runs-on: ubuntu-latest  
+    steps:  
+      - name: 检出代码  
+        uses: actions/checkout@v2  
+      - name: 下载文件  
+        run: |  
+          curl -o versions.txt https://raw.githubusercontent.com/blawar/titledb/master/versions.txt
