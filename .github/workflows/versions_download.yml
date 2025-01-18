@@ -25,7 +25,7 @@ jobs:
           git add versions.txt
           # 检查是否有更改
           if ! git diff-index --quiet HEAD; then
-            echo "文件已更改，自动更新"
+            echo "文件已更改"
             git commit -m "自动更新 versions.txt"
             git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
           else
