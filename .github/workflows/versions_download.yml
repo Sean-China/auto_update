@@ -1,9 +1,9 @@
-name: 定时下载dbi_versions文件
+name: 定时下载dbi_versions文件  
 
 on:  
   schedule:  
-    - cron: '0 * * * *'
-  workflow_dispatch:
+    - cron: '0 * * * *'  
+  workflow_dispatch:  
   
 jobs:  
   download:  
@@ -15,12 +15,25 @@ jobs:
     
       - name: 下载文件  
         run: |  
-          curl -o versions.txt https://raw.githubusercontent.com/blawar/titledb/master/versions.txt
-      - name: 推送到代码仓库
-        run: |
-          git config --local user.name "Sean"
-          git config --local user.email "sean19821016@gmail.com"
-          git status
-          git add versions.txt
-          git commit -m "自动更新 versions.txt"
-          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+          curl -o versions.txt https://raw.githubusercontent.com/blawar/titledb/master/versions.txt  
+        
+      - name: 检查修改  
+        id: check_modified  
+        run: |  
+          git config --local user.name "Sean"  
+          git config --local user.email "sean19821016@gmail.com"  
+          git add versions.txt  
+          # 检查是否有更改  
+          if ! git diff-index --quiet HEAD; then  
+            echo "文件已更改"  
+            echo "::set-output name=changed::true"  
+          else  
+            echo "文件未更改"  
+            echo "::set-output name=changed::false"  
+          fi  
+
+      - name: 推送到代码仓库  
+        if: steps.check_modified.outputs.changed == 'true'  
+        run: |  
+          git commit -m "自动更新 versions.txt"  
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main  
