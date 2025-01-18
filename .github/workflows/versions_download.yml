@@ -20,6 +20,7 @@ jobs:
         run: |
           git config --local user.name "Sean"
           git config --local user.email "sean19821016@gmail.com"
+          git status
           git add versions.txt
           git commit -m "自动更新 versions.txt"
           git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
