@@ -1,4 +1,4 @@
-name: 定时下载dbi_versions文件
+name: 定时下载文件
 
 on:
   schedule:
@@ -11,27 +11,25 @@ jobs:
     
     steps:
       - name: 检出代码
-        uses: actions/checkout@v2
-    
+        uses: actions/checkout@v3
+
       - name: 下载文件
         run: |
-          curl -o versions.txt https://raw.githubusercontent.com/blawar/titledb/master/versions.txt
-          curl -o fpslocker.zip https://github.com/masagrator/FPSLocker-Warehouse/archive/refs/heads/v3.zip
+          curl -L -o versions.txt https://raw.githubusercontent.com/blawar/titledb/master/versions.txt
+          curl -L -o fpslocker.zip https://github.com/masagrator/FPSLocker-Warehouse/archive/refs/heads/v3.zip
         
-      - name: 检查并提交更改  
-        run: |  
-          # 配置Git用户信息  
-          git config --local user.name "Sean"  
-          git config --local user.email "sean19821016@gmail.com"  
+      - name: 检查并提交更改
+        run: |
+          # 配置Git用户信息
+          git config --local user.name "Sean"
+          git config --local user.email "sean19821016@gmail.com"
 
-          # 检查文件的更改  
-          for file in versions.txt fpslocker.zip; do  
-            git add $file  
-            if ! git diff-index --quiet HEAD; then  
-              echo "$file 文件已更改"  
-              git commit -m "自动更新 $file"  
-              git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main  
-            else  
-              echo "$file 文件未更改"  
-            fi  
-          done
+          # 添加文件并检查更改
+          git add versions.txt fpslocker.zip
+          if ! git diff --cached --quiet; then
+              git commit -m "自动更新 versions.txt 和 fpslocker.zip"
+              git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+              echo "文件已更新并提交"
+          else
+              echo "没有文件更改，未提交"
+          fi
