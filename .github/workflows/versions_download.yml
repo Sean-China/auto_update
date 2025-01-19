@@ -27,7 +27,7 @@ jobs:
           # 添加文件并检查更改
           git add versions.txt fpslocker.zip
           if ! git diff --cached --quiet; then
-              git commit -m "自动更新 versions.txt 和 fpslocker.zip"
+              git commit -m "自动更新"
               git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
               echo "文件已更新并提交"
           else
