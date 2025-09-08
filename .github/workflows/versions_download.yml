@@ -20,7 +20,7 @@ jobs:
         
       - name: 检查并提交更改
         run: |
-          # 配置Github用户信息
+          # 配置Git用户信息
           git config --local user.name "Sean"
           git config --local user.email "sean19821016@gmail.com"
 
