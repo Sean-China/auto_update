@@ -16,7 +16,7 @@ jobs:
       - name: 下载文件
         run: |
           curl -L -o versions.txt https://raw.githubusercontent.com/blawar/titledb/master/versions.txt
-          curl -L -o fpslocker.zip https://github.com/masagrator/FPSLocker-Warehouse/archive/refs/heads/v3.1.zip
+          curl -L -o fpslocker.zip https://codeload.github.com/masagrator/FPSLocker-Warehouse/zip/refs/heads/v4.zip
         
       - name: 检查并提交更改
         run: |
