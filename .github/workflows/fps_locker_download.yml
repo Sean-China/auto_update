@@ -33,34 +33,19 @@ jobs:
       # 运行Python脚本
       - name: Run FPSLocker downloader
         run: python fps_locker_downloader.py
+        
+      - name: 检查并提交更改
+        run: |
+          # 配置Git用户信息
+          git config --local user.name "Sean"
+          git config --local user.email "sean19821016@gmail.com"
 
-      # 上传生成的ZIP文件作为 artifacts
-      - name: Upload SaltySD.zip
-        uses: actions/upload-artifact@v4
-        with:
-          name: SaltySD-configs
-          path: SaltySD.zip
-          retention-days: 7
-
-      # 将ZIP文件发布为release资产
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: saltysd-${{ github.run_id }}
-          release_name: SaltySD Configs ${{ github.run_id }}
-          draft: false
-          prerelease: false
-
-      - name: Upload Release Asset
-        id: upload-release-asset 
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./SaltySD.zip
-          asset_name: SaltySD.zip
-          asset_content_type: application/zip
+          # 添加文件并检查更改
+          git add SaltySD.zip
+          if ! git diff --cached --quiet; then
+              git commit -m "SaltySD.zip自动更新"
+              git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
+              echo "文件已更新并提交"
+          else
+              echo "没有文件更改，未提交"
+          fi
