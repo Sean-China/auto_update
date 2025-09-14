@@ -1,4 +1,4 @@
-name: 定时下载文件
+name: FPSLocker补丁定时下载（旧接口）
 
 on:
   schedule:
@@ -15,7 +15,6 @@ jobs:
 
       - name: 下载文件
         run: |
-          curl -L -o versions.txt https://raw.githubusercontent.com/blawar/titledb/master/versions.txt
           curl -L -o fpslocker.zip https://codeload.github.com/masagrator/FPSLocker-Warehouse/zip/refs/heads/v4
         
       - name: 检查并提交更改
@@ -25,9 +24,9 @@ jobs:
           git config --local user.email "sean19821016@gmail.com"
 
           # 添加文件并检查更改
-          git add versions.txt fpslocker.zip
+          git add fpslocker.zip
           if ! git diff --cached --quiet; then
-              git commit -m "自动更新"
+              git commit -m "FPSLocker补丁自动更新（旧接口）"
               git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
               echo "文件已更新并提交"
           else
