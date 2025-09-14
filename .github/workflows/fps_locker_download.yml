@@ -1,4 +1,4 @@
-name: FPSLocker Configs Downloader
+name: FPSLocker Update
 
 on:
   schedule:
