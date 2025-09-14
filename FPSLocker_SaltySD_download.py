@@ -6,7 +6,7 @@ FPSLocker配置下载器
 这个脚本用于GitHub Actions，自动探测FPSLocker-Warehouse页面中的下载链接，
 下载所有配置文件，提取SaltySD目录，并重新打包为SaltySD.zip。
 
-依赖项：requests, beautifulsoup4, zipfile（标准库）
+依赖项：requests, beautifulsoup4, zipfile（标准库）, hashlib（标准库）
 """
 
 import os
@@ -15,6 +15,7 @@ import shutil
 import requests
 import zipfile
 import tempfile
+import hashlib
 from bs4 import BeautifulSoup
 from urllib.parse import urljoin
 
@@ -24,6 +25,8 @@ GITHUB_REPO_URL = "https://github.com/masagrator/FPSLocker-Warehouse"
 SEARCH_PATTERN = "To download all configs click here"
 # 临时目录
 TEMP_DIR = None
+# 上次下载的文件哈希值存储文件路径
+HASH_FILE = "fpslocker_last_hash.txt"
 
 
 def setup_temp_directory():
@@ -40,6 +43,57 @@ def cleanup_temp_directory():
     if TEMP_DIR and os.path.exists(TEMP_DIR):
         print(f"清理临时目录: {TEMP_DIR}")
         shutil.rmtree(TEMP_DIR)
+
+
+def calculate_file_hash(file_path, algorithm='sha256'):
+    """
+    计算文件的哈希值
+    参数:
+        file_path: 文件路径
+        algorithm: 哈希算法，默认为'sha256'
+    返回: 文件的哈希值字符串
+    """
+    try:
+        hash_obj = hashlib.new(algorithm)
+        with open(file_path, 'rb') as f:
+            # 分块读取文件以处理大文件
+            for chunk in iter(lambda: f.read(4096), b''):
+                hash_obj.update(chunk)
+        return hash_obj.hexdigest()
+    except Exception as e:
+        print(f"计算文件哈希值时发生错误: {e}")
+        return None
+
+
+def save_hash(hash_value):
+    """
+    保存文件哈希值到本地文件
+    参数:
+        hash_value: 哈希值字符串
+    """
+    try:
+        with open(HASH_FILE, 'w') as f:
+            f.write(hash_value)
+        print(f"哈希值已保存到 {HASH_FILE}")
+    except Exception as e:
+        print(f"保存哈希值时发生错误: {e}")
+
+
+def get_saved_hash():
+    """
+    从本地文件获取上次保存的哈希值
+    返回: 哈希值字符串或None
+    """
+    try:
+        if os.path.exists(HASH_FILE):
+            with open(HASH_FILE, 'r') as f:
+                return f.read().strip()
+        else:
+            print(f"未找到哈希值文件 {HASH_FILE}")
+            return None
+    except Exception as e:
+        print(f"读取哈希值时发生错误: {e}")
+        return None
 
 
 def get_download_link():
@@ -228,18 +282,33 @@ def main():
             print("文件下载失败，程序退出")
             return 1
         
-        # 3. 解压文件
+        # 3. 计算下载文件的哈希值并与上次保存的进行比较
+        current_hash = calculate_file_hash(zip_file_path)
+        if not current_hash:
+            print("无法计算文件哈希值，继续执行后续步骤")
+        else:
+            saved_hash = get_saved_hash()
+            
+            if saved_hash and current_hash == saved_hash:
+                print(f"文件未发生变化（哈希值: {current_hash}），跳过后续处理")
+                return 0
+            else:
+                print(f"文件已更新（新哈希值: {current_hash}，旧哈希值: {saved_hash if saved_hash else '无'}")
+                # 保存新的哈希值
+                save_hash(current_hash)
+        
+        # 4. 解压文件
         if not extract_zip(zip_file_path, extract_dir):
             print("文件解压失败，程序退出")
             return 1
         
-        # 4. 查找SaltySD目录
+        # 5. 查找SaltySD目录
         saltysd_dir = find_saltysd_directory(extract_dir)
         if not saltysd_dir:
             print("未找到SaltySD目录，程序退出")
             return 1
         
-        # 5. 创建SaltySD.zip
+        # 6. 创建SaltySD.zip
         if not create_saltysd_zip(saltysd_dir, output_zip_path):
             print("SaltySD.zip创建失败，程序退出")
             return 1
