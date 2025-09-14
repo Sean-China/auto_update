@@ -40,8 +40,8 @@ jobs:
           git config --local user.name "Sean"
           git config --local user.email "sean19821016@gmail.com"
 
-          # 添加文件并检查更改
-          git add SaltySD.zip
+          # 添加文件（包括哈希值文件和SaltySD.zip）
+          git add SaltySD.zip fpslocker_last_hash.txt
           if ! git diff --cached --quiet; then
               git commit -m "FPSLocker补丁自动更新"
               git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
