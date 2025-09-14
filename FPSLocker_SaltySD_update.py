@@ -4,7 +4,7 @@
 FPSLocker配置下载器
 
 这个脚本用于GitHub Actions，自动探测FPSLocker-Warehouse页面中的下载链接，
-下载所有配置文件，提取SaltySD目录，并重新打包为FPSLocker.zip。
+下载所有配置文件，提取SaltySD目录，并重新打包为SaltySD.zip。
 
 依赖项：requests, beautifulsoup4, zipfile（标准库）
 """
@@ -255,4 +255,5 @@ def main():
 
 
 if __name__ == "__main__":
+
     sys.exit(main())
