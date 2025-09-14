@@ -26,7 +26,8 @@ SEARCH_PATTERN = "To download all configs click here"
 # 临时目录
 TEMP_DIR = None
 # 上次下载的文件哈希值存储文件路径
-HASH_FILE = "fpslocker_last_hash.txt"
+# 使用绝对路径确保在任何环境下都能正确找到文件
+HASH_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fpslocker_last_hash.txt")
 
 
 def setup_temp_directory():
