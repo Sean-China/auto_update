@@ -31,8 +31,8 @@ jobs:
           pip install -r requirements.txt
 
       # 运行Python脚本
-      - name: Run FPSLocker downloader
-        run: python fps_locker_downloader.py
+      - name: Run FPSLocker_SaltySD downloader
+        run: python FPSLocker_SaltySD_download.py
         
       - name: 检查并提交更改
         run: |
