@@ -1,4 +1,4 @@
-name: FPSLocker Update
+name: FPSLocker补丁自动更新
 
 on:
   schedule:
@@ -43,7 +43,7 @@ jobs:
           # 添加文件并检查更改
           git add SaltySD.zip
           if ! git diff --cached --quiet; then
-              git commit -m "SaltySD.zip自动更新"
+              git commit -m "FPSLocker补丁自动更新"
               git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git HEAD:main
               echo "文件已更新并提交"
           else
