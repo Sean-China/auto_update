@@ -150,7 +150,7 @@ def get_download_link():
     except Exception as e:
         print(f"获取下载链接时发生错误: {e}")
         # 出错时也返回兜底链接
-        fallback_url = f"{TARGET_URL_PREFIX}main.zip"
+        fallback_url = f"{TARGET_URL_PREFIX}v4.zip"
         print(f"使用兜底链接: {fallback_url}")
         return fallback_url
 
