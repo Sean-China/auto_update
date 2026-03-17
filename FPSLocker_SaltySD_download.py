@@ -143,7 +143,7 @@ def get_download_link():
         else:
             print("\n⚠️ 未匹配到符合要求的URL，使用兜底固定链接")
             # 兜底的固定链接（符合你的前缀要求）
-            fallback_url = f"{TARGET_URL_PREFIX}main.zip"
+            fallback_url = f"{TARGET_URL_PREFIX}v4.zip"
             print(f"兜底链接: {fallback_url}")
             return fallback_url
         
