@@ -17,17 +17,17 @@ import zipfile
 import tempfile
 import hashlib
 from bs4 import BeautifulSoup
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 # GitHub仓库URL
 GITHUB_REPO_URL = "https://github.com/masagrator/FPSLocker-Warehouse"
-# 要查找的文本模式
-SEARCH_PATTERN = "To download all configs click here"
 # 临时目录
 TEMP_DIR = None
 # 上次下载的文件哈希值存储文件路径
-# 使用绝对路径确保在任何环境下都能正确找到文件
 HASH_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fpslocker_last_hash.txt")
+
+# ========== 新增：ZIP链接筛选关键词（提升匹配准确性） ==========
+ZIP_KEYWORDS = ["FPSLocker-Warehouse", "config", "fpslocker", "saltysd"]  # 匹配包含这些关键词的zip链接
 
 
 def setup_temp_directory():
@@ -99,7 +99,7 @@ def get_saved_hash():
 
 def get_download_link():
     """
-    获取下载链接
+    优先选择包含FPSLocker配置特征的ZIP链接
     返回: 下载链接URL或None
     """
     try:
@@ -110,35 +110,52 @@ def get_download_link():
         print(f"成功获取页面内容，状态码: {response.status_code}")
         soup = BeautifulSoup(response.text, 'html.parser')
         
-        # 查找包含特定文本的元素
-        print(f"搜索文本: '{SEARCH_PATTERN}'")
-        # 查找所有a标签，检查其父元素或兄弟元素中是否包含搜索文本
-        for a_tag in soup.find_all('a'):
-            # 检查a标签的文本或其周围文本是否包含搜索模式
-            parent_text = a_tag.find_parent().get_text()
-            if SEARCH_PATTERN in parent_text:
-                # 提取href属性并构造完整URL
-                href = a_tag.get('href')
-                if href:
-                    full_url = urljoin(GITHUB_REPO_URL, href)
-                    print(f"找到下载链接: {full_url}")
-                    return full_url
+        # 存储所有找到的zip链接（按匹配优先级排序）
+        zip_links = []
         
-        # 如果上面的方法失败，尝试更通用的搜索
-        print("未找到精确匹配，尝试更通用的搜索...")
-        # 搜索所有包含关键词的文本节点
-        for text_node in soup.find_all(text=lambda text: text and "download all configs" in text.lower()):
-            # 查找最近的a标签
-            a_tag = text_node.find_parent().find('a')
-            if a_tag and a_tag.get('href'):
-                full_url = urljoin(GITHUB_REPO_URL, a_tag.get('href'))
-                print(f"找到下载链接: {full_url}")
-                return full_url
+        # 第一步：遍历所有<a>标签，筛选href以.zip结尾的链接
+        print("开始搜索页面中所有ZIP文件下载链接...")
+        for a_tag in soup.find_all('a', href=True):  # 只遍历有href属性的a标签
+            href = a_tag.get('href').strip()
+            # 筛选以.zip结尾的链接（忽略大小写）
+            if href.lower().endswith('.zip'):
+                # 拼接完整URL
+                full_url = urljoin(GITHUB_REPO_URL, href)
+                # 解析URL路径，用于关键词匹配
+                url_path = urlparse(full_url).path.lower()
+                
+                # 标记是否为优先匹配的链接（包含配置相关关键词）
+                is_priority = any(keyword in url_path for keyword in ZIP_KEYWORDS)
+                zip_links.append({
+                    'url': full_url,
+                    'priority': is_priority,
+                    'path': url_path
+                })
         
-        print("未找到下载链接")
-        return None
+        # 第二步：处理找到的zip链接
+        if not zip_links:
+            print("未找到任何ZIP文件下载链接")
+            return None
+        
+        # 打印所有找到的zip链接，方便调试
+        print(f"\n共找到 {len(zip_links)} 个ZIP链接:")
+        for idx, link in enumerate(zip_links, 1):
+            priority_note = "[优先匹配]" if link['priority'] else ""
+            print(f"  {idx}. {link['url']} {priority_note}")
+        
+        # 优先选择包含特征关键词的链接，无则选第一个
+        for link in zip_links:
+            if link['priority']:
+                print(f"\n选择优先匹配的ZIP链接: {link['url']}")
+                return link['url']
+        
+        # 无优先链接时，选择第一个找到的zip链接
+        first_link = zip_links[0]['url']
+        print(f"\n无优先匹配链接，选择第一个ZIP链接: {first_link}")
+        return first_link
+        
     except Exception as e:
-        print(f"获取下载链接时发生错误: {e}")
+        print(f"获取ZIP下载链接时发生错误: {e}")
         return None
 
 
@@ -254,7 +271,7 @@ def create_saltysd_zip(saltysd_dir, output_zip_path):
         print(f"SaltySD.zip创建成功，大小: {os.path.getsize(output_zip_path)} 字节")
         return True
     except Exception as e:
-        print(f"创建FPSLocker.zip时发生错误: {e}")
+        print(f"创建SaltySD.zip时发生错误: {e}")
         return False
 
 
@@ -325,5 +342,4 @@ def main():
 
 
 if __name__ == "__main__":
-
     sys.exit(main())
