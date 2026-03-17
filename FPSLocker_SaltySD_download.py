@@ -6,7 +6,7 @@ FPSLocker配置下载器
 这个脚本用于GitHub Actions，自动探测FPSLocker-Warehouse页面中的下载链接，
 下载所有配置文件，提取SaltySD目录，并重新打包为SaltySD.zip。
 
-依赖项：requests, beautifulsoup4, zipfile（标准库）, hashlib（标准库）, re（标准库）
+依赖项：requests, zipfile（标准库）, hashlib（标准库）, re（标准库）
 """
 
 import os
@@ -17,7 +17,16 @@ import requests
 import zipfile
 import tempfile
 import hashlib
-from bs4 import BeautifulSoup
+import json
+
+# 检查依赖项
+try:
+    import requests
+except ImportError:
+    print("错误: 缺少依赖项 'requests'。")
+    print("请使用 'pip install requests' 进行安装。")
+    sys.exit(1)
+
 from urllib.parse import urljoin
 
 # GitHub仓库URL
@@ -100,59 +109,34 @@ def get_saved_hash():
 def get_download_link():
     """
     获取下载链接
-    返回: 下载链接URL或None
+    通过多种方式探测 GitHub 仓库的下载链接
     """
     try:
-        print(f"正在访问GitHub仓库: {GITHUB_REPO_URL}")
-        # 模拟浏览器请求头，避免被拦截
+        print(f"正在访问GitHub仓库: {GITHUB_REPO_URL}", flush=True)
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
         response = requests.get(GITHUB_REPO_URL, headers=headers, timeout=30)
         response.raise_for_status()
         
-        print(f"成功获取页面内容，状态码: {response.status_code}")
-        page_source = response.text  # 获取完整页面源码
+        print(f"成功获取页面内容，状态码: {response.status_code}", flush=True)
         
-        # 正则规则：匹配以指定前缀开头、.zip结尾的URL（兼容URL带参数的情况）
-        # 解释：
-        # ^ 匹配开头 | {TARGET_URL_PREFIX} 你的指定前缀 | .*? 非贪婪匹配任意字符 | \.zip 匹配.zip（转义.） | (\?.*)? 兼容带参数的情况（如?raw=true）
-        pattern = re.compile(
-            rf'^{re.escape(TARGET_URL_PREFIX)}.*?\.zip(\?.*)?',  # re.escape避免前缀中的特殊字符影响
-            re.IGNORECASE | re.MULTILINE  # 忽略大小写 + 多行匹配
-        )
-        # 从页面源码中提取所有匹配的URL
-        matched_urls = pattern.findall(page_source)
-        # 处理匹配结果（去掉参数部分的空值，去重）
-        valid_urls = []
-        for url_part in matched_urls:
-            # 拼接完整URL（findall会把括号里的分组也返回，这里只取主URL）
-            full_url = re.search(rf'{re.escape(TARGET_URL_PREFIX)}.*?\.zip', page_source).group()
-            if full_url not in valid_urls:
-                valid_urls.append(full_url)
-        
-        # ========== 处理匹配结果 ==========
-        if valid_urls:
-            print(f"\n✅ 匹配到 {len(valid_urls)} 个符合要求的ZIP链接:")
-            for idx, url in enumerate(valid_urls, 1):
-                print(f"  {idx}. {url}")
-            # 返回第一个匹配的URL
-            target_url = valid_urls[0]
-            print(f"\n选择链接: {target_url}")
+        # 从页面 JSON 嵌入数据中提取默认分支 (GitHub 动态渲染的探测)
+        # 搜索包含 defaultBranch 的 JSON 数据
+        match = re.search(r'\"defaultBranch\":\"(.*?)\"', response.text)
+        if match:
+            branch = match.group(1)
+            target_url = f"{TARGET_URL_PREFIX}{branch}.zip"
+            print(f"✅ 提取到默认分支: {branch}", flush=True)
             return target_url
-        else:
-            print("\n⚠️ 未匹配到符合要求的URL，使用兜底固定链接")
-            # 兜底的固定链接（符合你的前缀要求）
-            fallback_url = f"{TARGET_URL_PREFIX}v4.zip"
-            print(f"兜底链接: {fallback_url}")
-            return fallback_url
+            
+        # 兜底逻辑
+        print("⚠️ 提取分支失败，使用默认兜底链接 (v4)", flush=True)
+        return f"{TARGET_URL_PREFIX}v4.zip"
         
     except Exception as e:
-        print(f"获取下载链接时发生错误: {e}")
-        # 出错时也返回兜底链接
-        fallback_url = f"{TARGET_URL_PREFIX}v4.zip"
-        print(f"使用兜底链接: {fallback_url}")
-        return fallback_url
+        print(f"获取下载链接时发生错误: {e}", flush=True)
+        return f"{TARGET_URL_PREFIX}v4.zip"
 
 
 def download_file(url, save_path):
@@ -164,12 +148,11 @@ def download_file(url, save_path):
     返回: 是否下载成功
     """
     try:
-        print(f"开始下载文件: {url}")
-        print(f"保存到: {save_path}")
+        print(f"开始下载文件: {url}", flush=True)
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
         }
-        # 使用stream模式下载大文件
+        # 使用stream模式下载
         with requests.get(url, stream=True, headers=headers, timeout=60) as response:
             response.raise_for_status()
             
@@ -186,12 +169,14 @@ def download_file(url, save_path):
                         # 显示下载进度
                         if total_size > 0:
                             progress = (downloaded_size / total_size) * 100
-                            print(f"下载进度: {progress:.1f}%", end='\r')
+                            # 每 20% 打印一次进度，避免过多输出
+                            if int(progress) % 20 == 0 and int(progress) != 0:
+                                pass # 也可以打印，但这里为了日志简洁先不打印
             
-        print(f"\n文件下载完成，大小: {downloaded_size} 字节")
+        print(f"文件下载完成，大小: {downloaded_size} 字节", flush=True)
         return True
     except Exception as e:
-        print(f"下载文件时发生错误: {e}")
+        print(f"下载文件时发生错误: {e}", flush=True)
         return False
 
 
@@ -306,10 +291,10 @@ def main():
             saved_hash = get_saved_hash()
             
             if saved_hash and current_hash == saved_hash:
-                print(f"文件未发生变化（哈希值: {current_hash}），跳过后续处理")
+                print(f"文件未发生变化（哈希值: {current_hash}），跳过后续处理", flush=True)
                 return 0
             else:
-                print(f"文件已更新（新哈希值: {current_hash}，旧哈希值: {saved_hash if saved_hash else '无'}")
+                print(f"文件已更新（新哈希值: {current_hash}，旧哈希值: {saved_hash if saved_hash else '无'}）", flush=True)
                 # 保存新的哈希值
                 save_hash(current_hash)
         
